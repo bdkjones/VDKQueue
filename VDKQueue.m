@@ -8,8 +8,6 @@
 //
 
 #import "VDKQueue.h"
-#include <sys/types.h>
-#include <sys/event.h>
 #import <unistd.h>
 #import <fcntl.h>
 #include <sys/stat.h>
@@ -56,11 +54,11 @@ NSString * VDKQueueAccessRevocationNotification = @"VDKQueueAccessWasRevokedNoti
 - (id) initWithPath:(NSString*)inPath andSubscriptionFlags:(u_int)flags;
 {
     self = [super init];
-	if(self)
+	if (self)
 	{
 		_path = [inPath copy];
-		_watchedFD = open( [_path fileSystemRepresentation], O_EVTONLY, 0 );
-		if(_watchedFD < 0)
+		_watchedFD = open([_path fileSystemRepresentation], O_EVTONLY, 0);
+		if (_watchedFD < 0)
 		{
 			[self autorelease];
 			return nil;
@@ -75,7 +73,7 @@ NSString * VDKQueueAccessRevocationNotification = @"VDKQueueAccessWasRevokedNoti
 	[_path release];
 	_path = nil;
     
-	if(_watchedFD >= 0) close(_watchedFD);
+	if (_watchedFD >= 0) close(_watchedFD);
 	_watchedFD = -1;
 	
 	[super dealloc];
@@ -220,7 +218,8 @@ NSString * VDKQueueAccessRevocationNotification = @"VDKQueueAccessWasRevokedNoti
     {
 		@autoreleasepool 
         {
-            NS_DURING
+            @try 
+            {
                 n = kevent(theFD, NULL, 0, &ev, 1, &timeout);
                 if (n > 0)
                 {
@@ -234,11 +233,11 @@ NSString * VDKQueueAccessRevocationNotification = @"VDKQueueAccessWasRevokedNoti
                             VDKQueuePathEntry *pe = [[(VDKQueuePathEntry*)ev.udata retain] autorelease];    // In case one of the notified folks removes the path.
                             NSString *fpath = [pe path];
                             [[NSWorkspace sharedWorkspace] noteFileSystemChanged:fpath];
-                        
-                        
+                            
+                            
                             // Clear any old notifications
                             [notesToPost removeAllObjects];
-                        
+                            
                             
                             // Figure out which notifications we need to issue
                             if ((ev.fflags & NOTE_RENAME) == NOTE_RENAME)
@@ -277,28 +276,30 @@ NSString * VDKQueueAccessRevocationNotification = @"VDKQueueAccessWasRevokedNoti
                             
                             // Post the notifications (or call the delegate method) on the main thread.
                             dispatch_async(dispatch_get_main_queue(), 
-                            ^{
-                                for (NSString *note in notes)
-                                {
-                                    [_delegate VDKQueue:self receivedNotification:note forPath:fpath];
-                                    
-                                    if (!_delegate || _alwaysPostNotifications)
-                                    {
-                                        NSDictionary *userInfoDict = [NSDictionary dictionaryWithObject:fpath forKey:@"path"];
-                                        [[[NSWorkspace sharedWorkspace] notificationCenter] postNotificationName:note object:self userInfo:userInfoDict];
-                                    }
-                                }
-                                
-                                [fpath release];
-                                [notes release];
-                            });
-        
+                                           ^{
+                                               for (NSString *note in notes)
+                                               {
+                                                   [_delegate VDKQueue:self receivedNotification:note forPath:fpath];
+                                                   
+                                                   if (!_delegate || _alwaysPostNotifications)
+                                                   {
+                                                       NSDictionary *userInfoDict = [NSDictionary dictionaryWithObject:fpath forKey:@"path"];
+                                                       [[[NSWorkspace sharedWorkspace] notificationCenter] postNotificationName:note object:self userInfo:userInfoDict];
+                                                   }
+                                               }
+                                               
+                                               [fpath release];
+                                               [notes release];
+                                           });
                         }
                     }
                 }
-            NS_HANDLER
+            }
+            
+            @catch (NSException *localException) 
+            {
                 NSLog(@"Error in VDKQueue watcherThread: %@", localException);
-            NS_ENDHANDLER
+            }
         }
     }
     
@@ -395,6 +396,14 @@ NSString * VDKQueueAccessRevocationNotification = @"VDKQueueAccessWasRevokedNoti
         [_watchedPathEntries removeAllObjects];
     }
 }
+
+
+- (NSUInteger) numberOfWatchedPaths
+{
+    return [_watchedPathEntries count];
+}
+
+
 
 
 @end

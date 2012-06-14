@@ -37,6 +37,8 @@
 
 
 #import <Foundation/Foundation.h>
+#include <sys/types.h>
+#include <sys/event.h>
 
 
 //
@@ -70,6 +72,7 @@ extern NSString * VDKQueueLinkCountChangeNotification;
 extern NSString * VDKQueueAccessRevocationNotification;
 
 
+
 //
 //  Or, instead of subscribing to notifications, you can specify a delegate and implement this method to respond to kQueue events.
 //  Note the required statement! For speed, this class does not check to make sure the delegate implements this method. (When I say "required" I mean it!)
@@ -92,7 +95,6 @@ extern NSString * VDKQueueAccessRevocationNotification;
     BOOL                    _alwaysPostNotifications;               // By default, notifications are posted only if there is no delegate set. Set this value to YES to have notes posted even when there is a delegate.
     
 @private
-    
     int						_coreQueueFD;                           // The actual kqueue ID (Unix file descriptor).
 	NSMutableDictionary    *_watchedPathEntries;                    // List of VDKQueuePathEntries. Keys are NSStrings of the path that each VDKQueuePathEntry is for.
     BOOL                    _keepWatcherThreadRunning;              // Set to NO to cancel the thread that watches _coreQueueFD for kQueue events
@@ -110,6 +112,11 @@ extern NSString * VDKQueueAccessRevocationNotification;
 
 - (void) removePath:(NSString *)aPath;
 - (void) removeAllPaths;
+
+
+- (NSUInteger) numberOfWatchedPaths;                                //  Returns the number of paths that this VDKQueue instance is actively watching.
+
+
 
 @property (assign) id<VDKQueueDelegate> delegate;
 @property (assign) BOOL alwaysPostNotifications;
