@@ -19,7 +19,6 @@ Objective-C has come a long way in the past nine years and UKKQueue was long in 
 	-- Grand Central Dispatch is used in place of Uli's "threadProxy" notifications (much faster)
 	-- Memory footprint is roughly halved, since VDKQueue creates less overhead
 	-- Fewer locks are taken, especially in loops (faster)
-	-- The @autoreleasepool construct is used in place of alloc/init-ing an NSAutoReleasePool (much faster)
 	-- The code is *much* cleaner and simpler!
 	-- There is only one .h and one .m file to include.
 	
@@ -44,12 +43,11 @@ All tests conducted on a 2008 MacBook Pro 2.5Ghz with 4GB of RAM running OS 10.7
 requirements
 ------------
 
-As published, VDKQueue requires that you use Xcode 4.2+ and link against the 10.7 framework (for the @autoreleasepool language feature).
-However, if you want to use VDKQueue on 10.6, you can simply replace the @autoreleasepool with an alloc/init-ed NSAutoReleasePool. If you do,
-VDKQueue will work just fine on 10.6+
+VDKQueue requires Mac OS X 10.6+ because it uses Grand Central Dispatch.
 
-VDKQueue does not support garbage collection. If you use garbage collection, you are lazy. Shape up. (Also, GC is deprecated in OS 10.8.)
-VDKQueue does not currently use ARC (automatic reference counting), although it should be straightforward to convert if you wish.
+VDKQueue does not support garbage collection. If you use garbage collection, you are lazy. Shape up.
+
+VDKQueue does not currently use ARC, although it should be straightforward to convert if you wish. (Don't be the guy that can't manually manage memory, though.)
 
 
 
@@ -57,9 +55,15 @@ VDKQueue does not currently use ARC (automatic reference counting), although it 
 license
 -------
 
-Copyright (c) 2012 Bryan D K Jones.
-You are free to use, modify and redistribute this software subject to these conditions:
-      1) I am not liable for anything that happens to you if you use this software --- including if it becomes sentient and eats your grandmother.
-      2) You keep this notice in your derivative work.
-      3) You keep Uli Kusterer's original copyright notice as well (this notice appears at the bottom of the header file.)
-      4) You are awesome.
+Created by Bryan D K Jones on 28 March 2012
+Copyright 2013 Bryan D K Jones
+
+Based heavily on UKKQueue, which was created and copyrighted by Uli Kusterer on 21 Dec 2003.
+
+This software is provided 'as-is', without any express or implied warranty. In no event will the authors be held liable for any damages arising from the use of this software. Permission is granted to anyone to use this software for any purpose, including commercial applications, and to alter it and redistribute it freely, subject to the following restrictions:
+
+1. The origin of this software must not be misrepresented; you must not claim that you wrote the original software. If you use this software in a product, an acknowledgment in the product documentation would be appreciated but is not required.
+
+2. Altered source versions must be plainly marked as such, and must not be misrepresented as being the original software.
+	   
+3. This notice may not be removed or altered from any source distribution.
