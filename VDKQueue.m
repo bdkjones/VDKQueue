@@ -209,11 +209,6 @@ NSString * VDKQueueAccessRevocationNotification = @"VDKQueueAccessWasRevokedNoti
     return nil;
 }
 
-
-//
-//  WARNING: This thread has no active autorelease pool, so if you make changes, you must manually manage 
-//           memory without relying on autorelease. Otherwise, you will leak!
-//
 - (void) watcherThread:(id)sender
 {
     int					n;
@@ -261,64 +256,66 @@ NSString * VDKQueueAccessRevocationNotification = @"VDKQueueAccessWasRevokedNoti
             if (!pe || ![pe respondsToSelector:@selector(path)])
                 continue;
 
-            // Need to retain so it does not disappear while the block at the bottom is waiting to run on the main thread. Released in that block.
-            NSString *fpath = [((VDKQueuePathEntry *)pe).path retain];
-            if (!fpath) continue;
+            @autoreleasepool {
+                // Need to retain so it does not disappear while the block at the bottom is waiting to run on the main thread. Released in that block.
+                NSString *fpath = [((VDKQueuePathEntry *)pe).path retain];
+                if (!fpath) continue;
 
-            [[NSWorkspace sharedWorkspace] noteFileSystemChanged:fpath];
+                [[NSWorkspace sharedWorkspace] noteFileSystemChanged:fpath];
 
-            // Clear any old notifications
-            [notesToPost removeAllObjects];
+                // Clear any old notifications
+                [notesToPost removeAllObjects];
 
-            // Figure out which notifications we need to issue
-            if ((ev.fflags & NOTE_RENAME) == NOTE_RENAME)
-            {
-                [notesToPost addObject:VDKQueueRenameNotification];
-            }
-            if ((ev.fflags & NOTE_WRITE) == NOTE_WRITE)
-            {
-                [notesToPost addObject:VDKQueueWriteNotification];
-            }
-            if ((ev.fflags & NOTE_DELETE) == NOTE_DELETE)
-            {
-                [notesToPost addObject:VDKQueueDeleteNotification];
-            }
-            if ((ev.fflags & NOTE_ATTRIB) == NOTE_ATTRIB)
-            {
-                [notesToPost addObject:VDKQueueAttributeChangeNotification];
-            }
-            if ((ev.fflags & NOTE_EXTEND) == NOTE_EXTEND)
-            {
-                [notesToPost addObject:VDKQueueSizeIncreaseNotification];
-            }
-            if ((ev.fflags & NOTE_LINK) == NOTE_LINK)
-            {
-                [notesToPost addObject:VDKQueueLinkCountChangeNotification];
-            }
-            if ((ev.fflags & NOTE_REVOKE) == NOTE_REVOKE)
-            {
-                [notesToPost addObject:VDKQueueAccessRevocationNotification];
-            }
-
-            NSArray *notes = [[NSArray alloc] initWithArray:notesToPost];   // notesToPost will be changed in the next loop iteration, which will likely occur before the block below runs.
-
-            // Post the notifications (or call the delegate method) on the main thread.
-            dispatch_async(dispatch_get_main_queue(), ^{
-                for (NSString *note in notes)
+                // Figure out which notifications we need to issue
+                if ((ev.fflags & NOTE_RENAME) == NOTE_RENAME)
                 {
-                    [_delegate VDKQueue:self receivedNotification:note forPath:fpath];
-
-                    if (!_delegate || _alwaysPostNotifications)
-                    {
-                        NSDictionary *userInfoDict = [[NSDictionary alloc] initWithObjectsAndKeys:fpath, @"path", nil];
-                        [[[NSWorkspace sharedWorkspace] notificationCenter] postNotificationName:note object:self userInfo:userInfoDict];
-                        [userInfoDict release];
-                    }
+                    [notesToPost addObject:VDKQueueRenameNotification];
+                }
+                if ((ev.fflags & NOTE_WRITE) == NOTE_WRITE)
+                {
+                    [notesToPost addObject:VDKQueueWriteNotification];
+                }
+                if ((ev.fflags & NOTE_DELETE) == NOTE_DELETE)
+                {
+                    [notesToPost addObject:VDKQueueDeleteNotification];
+                }
+                if ((ev.fflags & NOTE_ATTRIB) == NOTE_ATTRIB)
+                {
+                    [notesToPost addObject:VDKQueueAttributeChangeNotification];
+                }
+                if ((ev.fflags & NOTE_EXTEND) == NOTE_EXTEND)
+                {
+                    [notesToPost addObject:VDKQueueSizeIncreaseNotification];
+                }
+                if ((ev.fflags & NOTE_LINK) == NOTE_LINK)
+                {
+                    [notesToPost addObject:VDKQueueLinkCountChangeNotification];
+                }
+                if ((ev.fflags & NOTE_REVOKE) == NOTE_REVOKE)
+                {
+                    [notesToPost addObject:VDKQueueAccessRevocationNotification];
                 }
 
-                [fpath release];
-                [notes release];
-            });
+                NSArray *notes = [[NSArray alloc] initWithArray:notesToPost];   // notesToPost will be changed in the next loop iteration, which will likely occur before the block below runs.
+
+                // Post the notifications (or call the delegate method) on the main thread.
+                dispatch_async(dispatch_get_main_queue(), ^{
+                    for (NSString *note in notes)
+                    {
+                        [_delegate VDKQueue:self receivedNotification:note forPath:fpath];
+
+                        if (!_delegate || _alwaysPostNotifications)
+                        {
+                            NSDictionary *userInfoDict = [[NSDictionary alloc] initWithObjectsAndKeys:fpath, @"path", nil];
+                            [[[NSWorkspace sharedWorkspace] notificationCenter] postNotificationName:note object:self userInfo:userInfoDict];
+                            [userInfoDict release];
+                        }
+                    }
+
+                    [fpath release];
+                    [notes release];
+                });
+            }
         }
 
         @catch (NSException *localException)
