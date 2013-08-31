@@ -39,7 +39,7 @@ NSString * VDKQueueAccessRevocationNotification = @"VDKQueueAccessWasRevokedNoti
 #pragma mark -
 #pragma mark VDKQueuePathEntry
 #pragma mark -
-#pragma ------------------------------------------------------------------------------------------------------------------------------------------------------------
+#pragma mark ------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 //  This is a simple model class used to hold info about each path we watch.
 @interface VDKQueuePathEntry : NSObject
@@ -61,7 +61,7 @@ NSString * VDKQueueAccessRevocationNotification = @"VDKQueueAccessWasRevokedNoti
 @synthesize path = _path, watchedFD = _watchedFD, subscriptionFlags = _subscriptionFlags;
 
 
-- (id) initWithPath:(NSString*)inPath andSubscriptionFlags:(u_int)flags;
+- (id) initWithPath:(NSString*)inPath andSubscriptionFlags:(u_int)flags
 {
     self = [super init];
 	if (self)
@@ -104,7 +104,7 @@ NSString * VDKQueueAccessRevocationNotification = @"VDKQueueAccessWasRevokedNoti
 #pragma mark -
 #pragma mark VDKQueue
 #pragma mark -
-#pragma ------------------------------------------------------------------------------------------------------------------------------------------------------------
+#pragma mark ------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 @interface VDKQueue ()
 - (void) watcherThread:(id)sender;
@@ -345,7 +345,7 @@ NSString * VDKQueueAccessRevocationNotification = @"VDKQueueAccessWasRevokedNoti
 
 #pragma mark -
 #pragma mark PUBLIC METHODS
-#pragma -----------------------------------------------------------------------------------------------------------------------------------------------------
+#pragma mark -----------------------------------------------------------------------------------------------------------------------------------------------------
 
 
 - (void) addPath:(NSString *)aPath
