@@ -233,6 +233,12 @@ NSString * VDKQueueAccessRevocationNotification = @"VDKQueueAccessWasRevokedNoti
         {
             n = kevent(theFD, NULL, 0, &ev, 1, &timeout);
 
+            if (n == -1)
+            {
+                NSLog(@"watcherThread: kevent returned error %d: %s", errno, strerror(errno));
+                break;
+            }
+
             if (n == 0) continue;
 
             //NSLog( @"KEVENT returned %d", n );
