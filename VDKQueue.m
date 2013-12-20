@@ -22,13 +22,7 @@ NSString * VDKQueueSizeIncreaseNotification = @"VDKQueueFileSizeIncreasedNotific
 NSString * VDKQueueLinkCountChangeNotification = @"VDKQueueLinkCountChangedNotification";
 NSString * VDKQueueAccessRevocationNotification = @"VDKQueueAccessWasRevokedNotification";
 
-
-
-#pragma mark -
 #pragma mark VDKQueuePathEntry
-#pragma mark -
-#pragma ------------------------------------------------------------------------------------------------------------------------------------------------------------ */
-#pragma ------------------------------------------------------------------------------------------------------------------------------------------------------------ */
 
 //  This is a simple model class used to hold info about each path we watch.
 @interface VDKQueuePathEntry : NSObject
@@ -91,11 +85,8 @@ NSString * VDKQueueAccessRevocationNotification = @"VDKQueueAccessWasRevokedNoti
 
 
 
-#pragma mark -
+
 #pragma mark VDKQueue
-#pragma mark -
-#pragma ------------------------------------------------------------------------------------------------------------------------------------------------------------ */
-#pragma ------------------------------------------------------------------------------------------------------------------------------------------------------------ */
 
 @interface VDKQueue ()
 - (void) watcherThread:(id)sender;
