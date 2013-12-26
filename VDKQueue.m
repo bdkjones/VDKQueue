@@ -227,6 +227,8 @@ NSString * VDKQueueAccessRevocationNotification = @"VDKQueueAccessWasRevokedNoti
 	NSLog(@"watcherThread started.");
 #endif
 	
+    [[NSThread currentThread] setName:@"VDKQueue Watcher Thread"];
+    
     while(_keepWatcherThreadRunning)
     {
         @try 
