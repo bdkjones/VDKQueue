@@ -150,6 +150,7 @@ extern NSString * VDKQueueAccessRevocationNotification;
 {
 	ARCCompatWeakPropertyTypeModifier id<VDKQueueDelegate>	_delegate;
 	BOOL													_alwaysPostNotifications;				// By default, notifications are posted only if there is no delegate set. Set this value to YES to have notes posted even when there is a delegate.
+	int 													_sleepInterval;
 
 @private
 	int														_coreQueueFD;							// The actual kqueue ID (Unix file descriptor).
@@ -177,5 +178,6 @@ extern NSString * VDKQueueAccessRevocationNotification;
 
 @property (ARCCompatWeakPropertyModifier) id<VDKQueueDelegate> delegate;
 @property (assign) BOOL alwaysPostNotifications;
+@property (assign) int sleepInterval;
 
 @end
