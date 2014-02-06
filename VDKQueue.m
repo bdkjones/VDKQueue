@@ -70,7 +70,7 @@ NSString * VDKQueueAccessRevocationNotification = @"VDKQueueAccessWasRevokedNoti
 		_watchedFD = open([_path fileSystemRepresentation], O_EVTONLY, 0);
 		if (_watchedFD < 0)
 		{
-			[self autorelease];
+            ARCCompatAutorelease(self)
 			return nil;
 		}
 		_subscriptionFlags = flags;
@@ -80,13 +80,15 @@ NSString * VDKQueueAccessRevocationNotification = @"VDKQueueAccessWasRevokedNoti
 
 -(void)	dealloc
 {
-	[_path release];
+	ARCCompatRelease(_path)
 	_path = nil;
     
 	if (_watchedFD >= 0) close(_watchedFD);
 	_watchedFD = -1;
 	
+#if ! __has_feature(objc_arc)
 	[super dealloc];
+#endif
 }
 
 @end
@@ -128,7 +130,7 @@ NSString * VDKQueueAccessRevocationNotification = @"VDKQueueAccessWasRevokedNoti
 		_coreQueueFD = kqueue();
 		if (_coreQueueFD == -1)
 		{
-			[self autorelease];
+            ARCCompatAutorelease(self)
 			return nil;
 		}
 		
@@ -147,10 +149,12 @@ NSString * VDKQueueAccessRevocationNotification = @"VDKQueueAccessWasRevokedNoti
     // Do this to close all the open file descriptors for files we're watching
     [self removeAllPaths];
     
-    [_watchedPathEntries release];
+    ARCCompatRelease(_watchedPathEntries)
     _watchedPathEntries = nil;
     
+#if ! __has_feature(objc_arc)
     [super dealloc];
+#endif
 }
 
 
@@ -170,9 +174,9 @@ NSString * VDKQueueAccessRevocationNotification = @"VDKQueueAccessWasRevokedNoti
         if (pathEntry)
 		{
             // All flags already set?
-			if(([pathEntry subscriptionFlags] & flags) == flags) 
+			if(([pathEntry subscriptionFlags] & flags) == flags)
             {
-				return [[pathEntry retain] autorelease]; 
+                return ARCCompatAutoreleaseInline( ARCCompatReleaseInline(pathEntry) );
             }
 			
 			flags |= [pathEntry subscriptionFlags];
@@ -183,12 +187,12 @@ NSString * VDKQueueAccessRevocationNotification = @"VDKQueueAccessWasRevokedNoti
 		
 		if (!pathEntry)
         {
-            pathEntry = [[[VDKQueuePathEntry alloc] initWithPath:path andSubscriptionFlags:flags] autorelease];
+            pathEntry = ARCCompatAutoreleaseInline([[VDKQueuePathEntry alloc] initWithPath:path andSubscriptionFlags:flags]);
         }
         
 		if (pathEntry)
 		{
-			EV_SET(&ev, [pathEntry watchedFD], EVFILT_VNODE, EV_ADD | EV_ENABLE | EV_CLEAR, flags, 0, pathEntry);
+			EV_SET(&ev, [pathEntry watchedFD], EVFILT_VNODE, EV_ADD | EV_ENABLE | EV_CLEAR, flags, 0, ARCCompatBridge(void*, pathEntry));
 			
 			[pathEntry setSubscriptionFlags:flags];
             
@@ -203,7 +207,7 @@ NSString * VDKQueueAccessRevocationNotification = @"VDKQueueAccessWasRevokedNoti
 			}
         }
         
-        return [[pathEntry retain] autorelease];
+        return ARCCompatAutoreleaseInline( ARCCompatReleaseInline(pathEntry) );
     }
     
     return nil;
@@ -211,7 +215,7 @@ NSString * VDKQueueAccessRevocationNotification = @"VDKQueueAccessWasRevokedNoti
 
 
 //
-//  WARNING: This thread has no active autorelease pool, so if you make changes, you must manually manage 
+//  WARNING: This thread has no active autorelease pool, so if you make changes, you must manually manage
 //           memory without relying on autorelease. Otherwise, you will leak!
 //
 - (void) watcherThread:(id)sender
@@ -229,7 +233,7 @@ NSString * VDKQueueAccessRevocationNotification = @"VDKQueueAccessWasRevokedNoti
 	
     while(_keepWatcherThreadRunning)
     {
-        @try 
+        @try
         {
             n = kevent(theFD, NULL, 0, &ev, 1, &timeout);
             if (n > 0)
@@ -250,13 +254,15 @@ NSString * VDKQueueAccessRevocationNotification = @"VDKQueueAccessWasRevokedNoti
                         //        check here to try to eliminate this (infrequent) problem. In theory, a KEVENT that does not have a VDKQueuePathEntry
                         //        object attached as the udata parameter is not an event we registered for, so we should not be "missing" any events. In theory.
                         //
-                        id pe = ev.udata;
+                        id pe = ARCCompatBridge(id, ev.udata);
                         if (pe && [pe respondsToSelector:@selector(path)])
                         {
-                            NSString *fpath = [((VDKQueuePathEntry *)pe).path retain];         // Need to retain so it does not disappear while the block at the bottom is waiting to run on the main thread. Released in that block.
+                            NSString *fpath = ARCCompatRetainInline( ((VDKQueuePathEntry *)pe).path );         // Need to retain so it does not disappear while the block at the bottom is waiting to run on the main thread. Released in that block.
                             if (!fpath) continue;
                             
+#if !TARGET_OS_IPHONE
                             [[NSWorkspace sharedWorkspace] noteFileSystemChanged:fpath];
+#endif
                             
                             // Clear any old notifications
                             [notesToPost removeAllObjects];
@@ -305,13 +311,17 @@ NSString * VDKQueueAccessRevocationNotification = @"VDKQueueAccessWasRevokedNoti
                                                    if (!_delegate || _alwaysPostNotifications)
                                                    {
                                                        NSDictionary *userInfoDict = [[NSDictionary alloc] initWithObjectsAndKeys:fpath, @"path", nil];
+#if TARGET_OS_IPHONE
+                                                       [[NSNotificationCenter defaultCenter] postNotificationName:note object:self userInfo:userInfoDict];
+#else
                                                        [[[NSWorkspace sharedWorkspace] notificationCenter] postNotificationName:note object:self userInfo:userInfoDict];
-                                                       [userInfoDict release];
+#endif
+                                                       ARCCompatRelease(userInfoDict)
                                                    }
                                                }
                                                
-                                               [fpath release];
-                                               [notes release];
+                                               ARCCompatRelease(fpath)
+                                               ARCCompatRelease(notes)
                                            });
                         }
                     }
@@ -319,7 +329,7 @@ NSString * VDKQueueAccessRevocationNotification = @"VDKQueueAccessWasRevokedNoti
             }
         }
         
-        @catch (NSException *localException) 
+        @catch (NSException *localException)
         {
             NSLog(@"Error in VDKQueue watcherThread: %@", localException);
         }
@@ -327,15 +337,15 @@ NSString * VDKQueueAccessRevocationNotification = @"VDKQueueAccessWasRevokedNoti
     
 	// Close our kqueue's file descriptor
 	if(close(theFD) == -1) {
-       NSLog(@"VDKQueue watcherThread: Couldn't close main kqueue (%d)", errno); 
+        NSLog(@"VDKQueue watcherThread: Couldn't close main kqueue (%d)", errno);
     }
     
-    [notesToPost release];
+    ARCCompatRelease(notesToPost)
     
 #if DEBUG_LOG_THREAD_LIFETIME
 	NSLog(@"watcherThread finished.");
 #endif
-
+    
 }
 
 
@@ -351,7 +361,7 @@ NSString * VDKQueueAccessRevocationNotification = @"VDKQueueAccessWasRevokedNoti
 - (void) addPath:(NSString *)aPath
 {
     if (!aPath) return;
-    [aPath retain];
+    ARCCompatRetain(aPath)
     
     @synchronized(self)
     {
@@ -367,14 +377,14 @@ NSString * VDKQueueAccessRevocationNotification = @"VDKQueueAccessWasRevokedNoti
         }
     }
     
-    [aPath release];
+    ARCCompatRelease(aPath)
 }
 
 
 - (void) addPath:(NSString *)aPath notifyingAbout:(u_int)flags
 {
     if (!aPath) return;
-    [aPath retain];
+    ARCCompatRetain(aPath)
     
     @synchronized(self)
     {
@@ -390,14 +400,14 @@ NSString * VDKQueueAccessRevocationNotification = @"VDKQueueAccessWasRevokedNoti
         }
     }
     
-    [aPath release];
+    ARCCompatRelease(aPath)
 }
 
 
 - (void) removePath:(NSString *)aPath
 {
     if (!aPath) return;
-    [aPath retain];
+    ARCCompatRetain(aPath)
     
     @synchronized(self)
 	{
@@ -409,7 +419,7 @@ NSString * VDKQueueAccessRevocationNotification = @"VDKQueueAccessWasRevokedNoti
         }
 	}
     
-    [aPath release];
+    ARCCompatRelease(aPath)
 }
 
 
