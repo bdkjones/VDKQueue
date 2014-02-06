@@ -67,6 +67,25 @@
 #include <sys/event.h>
 
 
+// ARC Helpers
+
+#if ! __has_feature(objc_arc)
+    #define ARCCompatAutorelease(__obj__) ([__obj__ autorelease]);
+    #define ARCCompatRetain(__obj__) ([__obj__ retain]);
+    #define ARCCompatRelease(__obj__) ([__obj__ release]);
+    
+    #define ARCCompatWeakPropertyModifier assign
+    #define ARCCompatWeakPropertyTypeModifier
+#else
+    #define ARCCompatAutorelease(__obj__) (__obj__);
+    #define ARCCompatRetain(__obj__) (__obj__);
+    #define ARCCompatRelease(__obj__) (__obj__);
+    
+    #define ARCCompatWeakPropertyModifier weak
+    #define ARCCompatWeakPropertyTypeModifier __weak
+#endif
+
+
 //
 //  Logical OR these values into the u_int that you pass in the -addPath:notifyingAbout: method
 //  to specify the types of notifications you're interested in. Pass the default value to receive all of them.
@@ -117,7 +136,7 @@ extern NSString * VDKQueueAccessRevocationNotification;
 
 @interface VDKQueue : NSObject
 {
-    id<VDKQueueDelegate>    _delegate;
+    ARCCompatWeakPropertyTypeModifier id<VDKQueueDelegate>    _delegate;
     BOOL                    _alwaysPostNotifications;               // By default, notifications are posted only if there is no delegate set. Set this value to YES to have notes posted even when there is a delegate.
     
 @private
@@ -144,7 +163,7 @@ extern NSString * VDKQueueAccessRevocationNotification;
 
 
 
-@property (assign) id<VDKQueueDelegate> delegate;
+@property (ARCCompatWeakPropertyModifier) id<VDKQueueDelegate> delegate;
 @property (assign) BOOL alwaysPostNotifications;
 
 @end
