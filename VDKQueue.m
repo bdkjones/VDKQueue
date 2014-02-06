@@ -176,7 +176,7 @@ NSString * VDKQueueAccessRevocationNotification = @"VDKQueueAccessWasRevokedNoti
 			// All flags already set?
 			if(([pathEntry subscriptionFlags] & flags) == flags)
 			{
-				return ARCCompatAutoreleaseInline( ARCCompatReleaseInline(pathEntry) );
+				return ARCCompatAutoreleaseInline( ARCCompatRetainInline(pathEntry) );
 			}
 
 			flags |= [pathEntry subscriptionFlags];
@@ -207,7 +207,7 @@ NSString * VDKQueueAccessRevocationNotification = @"VDKQueueAccessWasRevokedNoti
 			}
 		}
 
-		return ARCCompatAutoreleaseInline( ARCCompatReleaseInline(pathEntry) );
+		return ARCCompatAutoreleaseInline( ARCCompatRetainInline(pathEntry) );
 	}
 
 	return nil;
