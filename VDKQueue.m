@@ -115,7 +115,7 @@ NSString * VDKQueueAccessRevocationNotification = @"VDKQueueAccessWasRevokedNoti
 
 
 @implementation VDKQueue
-@synthesize delegate = _delegate, alwaysPostNotifications = _alwaysPostNotifications;
+@synthesize delegate = _delegate, alwaysPostNotifications = _alwaysPostNotifications, sleepInterval = _sleepInterval;
 
 
 
@@ -135,6 +135,11 @@ NSString * VDKQueueAccessRevocationNotification = @"VDKQueueAccessWasRevokedNoti
 		}
 
 		_alwaysPostNotifications = NO;
+#if TARGET_OS_IPHONE
+		_sleepInterval = 60;
+#else
+		_sleepInterval = 0;
+#endif
 		_watchedPathEntries = [[NSMutableDictionary alloc] init];
 	}
 	return self;
@@ -333,6 +338,9 @@ NSString * VDKQueueAccessRevocationNotification = @"VDKQueueAccessWasRevokedNoti
 		{
 			NSLog(@"Error in VDKQueue watcherThread: %@", localException);
 		}
+#if TARGET_OS_IPHONE
+		[NSThread sleepForTimeInterval:_sleepInterval];		// To save power on iOS
+#endif
 	}
 
 	// Close our kqueue's file descriptor
