@@ -178,6 +178,6 @@ extern NSString * VDKQueueAccessRevocationNotification;
 
 @property (ARCCompatWeakPropertyModifier) id<VDKQueueDelegate> delegate;
 @property (assign) BOOL alwaysPostNotifications;
-@property (assign) int sleepInterval;
+@property (assign) NSTimeInterval sleepInterval;
 
 @end
