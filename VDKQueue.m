@@ -34,12 +34,7 @@ NSString * VDKQueueSizeIncreaseNotification = @"VDKQueueFileSizeIncreasedNotific
 NSString * VDKQueueLinkCountChangeNotification = @"VDKQueueLinkCountChangedNotification";
 NSString * VDKQueueAccessRevocationNotification = @"VDKQueueAccessWasRevokedNotification";
 
-
-
-#pragma mark -
-#pragma mark VDKQueuePathEntry
-#pragma mark -
-#pragma ------------------------------------------------------------------------------------------------------------------------------------------------------------
+#pragma mark - VDKQueuePathEntry
 
 //	This is a simple model class used to hold info about each path we watch.
 @interface VDKQueuePathEntry : NSObject
@@ -103,10 +98,8 @@ NSString * VDKQueueAccessRevocationNotification = @"VDKQueueAccessWasRevokedNoti
 
 
 
-#pragma mark -
-#pragma mark VDKQueue
-#pragma mark -
-#pragma ------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+#pragma mark - VDKQueue
 
 @interface VDKQueue ()
 - (void) watcherThread:(id)sender;
@@ -119,8 +112,7 @@ NSString * VDKQueueAccessRevocationNotification = @"VDKQueueAccessWasRevokedNoti
 
 
 
-#pragma mark -
-#pragma mark INIT/DEALLOC
+#pragma mark - INIT/DEALLOC
 
 - (id) init
 {
@@ -166,8 +158,7 @@ NSString * VDKQueueAccessRevocationNotification = @"VDKQueueAccessWasRevokedNoti
 
 
 
-#pragma mark -
-#pragma mark PRIVATE METHODS
+#pragma mark - PRIVATE METHODS
 
 - (VDKQueuePathEntry *)	addPathToQueue:(NSString *)path notifyingAbout:(u_int)flags
 {
@@ -361,9 +352,7 @@ NSString * VDKQueueAccessRevocationNotification = @"VDKQueueAccessWasRevokedNoti
 
 
 
-#pragma mark -
-#pragma mark PUBLIC METHODS
-#pragma -----------------------------------------------------------------------------------------------------------------------------------------------------
+#pragma mark - PUBLIC METHODS
 
 
 - (void) addPath:(NSString *)aPath
