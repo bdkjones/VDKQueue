@@ -253,10 +253,6 @@ NSString * VDKQueueAccessRevocationNotification = @"VDKQueueAccessWasRevokedNoti
 							if (!fpath) continue;
 
                             @autoreleasepool {
-#if !TARGET_OS_IPHONE
-    							[[NSWorkspace sharedWorkspace] noteFileSystemChanged:fpath];
-#endif
-
     							// Clear any old notifications
     							[notesToPost removeAllObjects];
 
@@ -303,11 +299,7 @@ NSString * VDKQueueAccessRevocationNotification = @"VDKQueueAccessWasRevokedNoti
                                         if (!_delegate || _alwaysPostNotifications)
                                         {
                                             NSDictionary *userInfoDict = [[NSDictionary alloc] initWithObjectsAndKeys:fpath, @"path", nil];
-#if TARGET_OS_IPHONE
                                             [[NSNotificationCenter defaultCenter] postNotificationName:note object:self userInfo:userInfoDict];
-#else
-                                            [[[NSWorkspace sharedWorkspace] notificationCenter] postNotificationName:note object:self userInfo:userInfoDict];
-#endif
                                             ARCCompatRelease(userInfoDict)
                                         }
                                     }
