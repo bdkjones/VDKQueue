@@ -20,12 +20,6 @@
 //      distribution.
 
 #import "VDKQueue.h"
-#import <unistd.h>
-#import <fcntl.h>
-
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <sys/event.h>
 
 NSString *const VDKQueueRenameNotification = @"VDKQueueFileRenamedNotification";
 NSString *const VDKQueueWriteNotification = @"VDKQueueFileWrittenToNotification";
@@ -39,23 +33,19 @@ NSString *const VDKQueueAccessRevocationNotification = @"VDKQueueAccessWasRevoke
 
 // This is a simple model class used to hold info about each path we watch.
 
-@interface VDKQueuePathEntry : NSObject {
-    NSString *_path;
-    int _watchedFD;
-    u_int _subscriptionFlags;
-}
-
-- (id)initWithPath:(NSString *)inPath subscriptionFlags:(u_int)flags;
+@interface VDKQueuePathEntry : NSObject
 
 @property (atomic, copy) NSString *path;
-@property (atomic, assign) int watchedFD;
-@property (atomic, assign) u_int subscriptionFlags;
+@property (atomic) int watchedFD;
+@property (atomic) VDKQueueEvent subscriptionFlags;
+
+- (instancetype)initWithPath:(NSString *)inPath subscriptionFlags:(VDKQueueEvent)flags;
 
 @end
 
 @implementation VDKQueuePathEntry
 
-- (id)initWithPath:(NSString *)inPath subscriptionFlags:(u_int)flags
+- (instancetype)initWithPath:(NSString *)inPath subscriptionFlags:(VDKQueueEvent)flags
 {
     self = [super init];
     if (self)
@@ -74,7 +64,6 @@ NSString *const VDKQueueAccessRevocationNotification = @"VDKQueueAccessWasRevoke
 {
     if (_watchedFD >= 0)
         close(_watchedFD);
-    _watchedFD = -1;
 }
 
 @end
@@ -96,7 +85,7 @@ NSString *const VDKQueueAccessRevocationNotification = @"VDKQueueAccessWasRevoke
 
 #pragma mark - INIT/DEALLOC
 
-- (id)init
+- (instancetype)init
 {
     self = [super init];
     if (self)
@@ -123,13 +112,11 @@ NSString *const VDKQueueAccessRevocationNotification = @"VDKQueueAccessWasRevoke
 
     // Do this to close all the open file descriptors for files we're watching
     [self removeAllPaths];
-
-    _watchedPathEntries = nil;
 }
 
 #pragma mark - PRIVATE METHODS
 
-- (VDKQueuePathEntry *)addPathToQueue:(NSString *)path notifyingAbout:(u_int)flags
+- (VDKQueuePathEntry *)addPathToQueue:(NSString *)path notifyingAbout:(VDKQueueEvent)flags
 {
     @synchronized(self)
     {
@@ -301,7 +288,7 @@ NSString *const VDKQueueAccessRevocationNotification = @"VDKQueueAccessWasRevoke
         // Only add this path if we don't already have it.
         if (!entry)
         {
-            entry = [self addPathToQueue:aPath notifyingAbout:VDKQueueNotifyDefault];
+            entry = [self addPathToQueue:aPath notifyingAbout:VDKQueueEventAll];
             if (!entry) {
                 NSLog(@"VDKQueue tried to add the path %@ to watchedPathEntries, but the VDKQueuePathEntry was nil. \nIt's possible that the host process has hit its max open file descriptors limit.", aPath);
             }
@@ -309,7 +296,7 @@ NSString *const VDKQueueAccessRevocationNotification = @"VDKQueueAccessWasRevoke
     }
 }
 
-- (void)addPath:(NSString *)aPath notifyingAbout:(u_int)flags
+- (void)addPath:(NSString *)aPath notifyingAbout:(VDKQueueEvent)flags
 {
     if (!aPath)
         return;

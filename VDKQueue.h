@@ -62,22 +62,44 @@
 
 #import <Foundation/Foundation.h>
 
-//
-//  Logical OR these values into the u_int that you pass in the -addPath:notifyingAbout: method
-//  to specify the types of notifications you're interested in. Pass the default value to receive all of them.
-//
-#define VDKQueueNotifyAboutRename                   NOTE_RENAME     // Item was renamed.
-#define VDKQueueNotifyAboutWrite                    NOTE_WRITE      // Item contents changed (also folder contents changed).
-#define VDKQueueNotifyAboutDelete                   NOTE_DELETE     // item was removed.
-#define VDKQueueNotifyAboutAttributeChange          NOTE_ATTRIB     // Item attributes changed.
-#define VDKQueueNotifyAboutSizeIncrease             NOTE_EXTEND     // Item size increased.
-#define VDKQueueNotifyAboutLinkCountChanged         NOTE_LINK       // Item's link count changed.
-#define VDKQueueNotifyAboutAccessRevocation         NOTE_REVOKE     // Access to item was revoked.
+#include <sys/event.h>
 
-#define VDKQueueNotifyDefault                       (VDKQueueNotifyAboutRename | VDKQueueNotifyAboutWrite \
-| VDKQueueNotifyAboutDelete | VDKQueueNotifyAboutAttributeChange \
-| VDKQueueNotifyAboutSizeIncrease | VDKQueueNotifyAboutLinkCountChanged \
-| VDKQueueNotifyAboutAccessRevocation)
+/**
+ * Logical OR these values into the flags that you pass in the @c -addPath:notifyingAbout: method
+ * to specify the types of notifications you're interested in.
+ * Pass VDKQueueEventAll to receive all of them.
+ */
+typedef NS_OPTIONS(unsigned, VDKQueueEvent) {
+    /// Item was renamed.
+    VDKQueueEventRename = NOTE_RENAME,
+
+    /// Item contents changed (also folder contents changed).
+    VDKQueueEventWrite = NOTE_WRITE,
+
+    /// Item was removed.
+    VDKQueueEventDelete = NOTE_DELETE,
+
+    /// Item attributes changed.
+    VDKQueueEventAttributeChange = NOTE_ATTRIB,
+
+    /// Item size increased.
+    VDKQueueEventSizeIncrease = NOTE_EXTEND,
+
+    /// Item's link count changed.
+    VDKQueueEventLinkCountChanged = NOTE_LINK,
+
+    /// Access to item was revoked.
+    VDKQueueEventAccessRevocation = NOTE_REVOKE,
+
+    /// All events.
+    VDKQueueEventAll = VDKQueueEventRename
+                     | VDKQueueEventWrite
+                     | VDKQueueEventDelete
+                     | VDKQueueEventAttributeChange
+                     | VDKQueueEventSizeIncrease
+                     | VDKQueueEventLinkCountChanged
+                     | VDKQueueEventAccessRevocation
+};
 
 //
 //  Notifications that this class sends to the NSWORKSPACE notification center.
@@ -107,6 +129,14 @@ extern NSString *const VDKQueueAccessRevocationNotification;
 
 @interface VDKQueue : NSObject
 
+@property (nonatomic, weak) id <VDKQueueDelegate> delegate;
+/**
+ * By default, notifications are posted only if there is no delegate set.
+ * Set this value to @c YES to have notes posted even when there is a delegate.
+ */
+@property (nonatomic) BOOL alwaysPostNotifications;
+@property (nonatomic) NSTimeInterval sleepInterval;
+
 /**
  *  Note: there is no need to ask whether a path is already being watched. Just add it or remove it and this class
  *      will take action only if appropriate. (Add only if we're not already watching it, remove only if we are.)
@@ -115,20 +145,12 @@ extern NSString *const VDKQueueAccessRevocationNotification;
  */
 - (void)addPath:(NSString *)aPath;
 /// See note above for values to pass in "flags"
-- (void)addPath:(NSString *)aPath notifyingAbout:(u_int)flags;
+- (void)addPath:(NSString *)aPath notifyingAbout:(VDKQueueEvent)flags;
 
 - (void)removePath:(NSString *)aPath;
 - (void)removeAllPaths;
 
 /// Returns the number of paths that this VDKQueue instance is actively watching.
 - (NSUInteger)numberOfWatchedPaths;
-
-@property (nonatomic, weak) id <VDKQueueDelegate> delegate;
-/**
- * By default, notifications are posted only if there is no delegate set.
- * Set this value to YES to have notes posted even when there is a delegate.
- */
-@property (nonatomic) BOOL alwaysPostNotifications;
-@property (nonatomic) NSTimeInterval sleepInterval;
 
 @end
