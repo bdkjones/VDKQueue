@@ -36,7 +36,8 @@ NSString * VDKQueueAccessRevocationNotification = @"VDKQueueAccessWasRevokedNoti
 
 #pragma mark - VDKQueuePathEntry
 
-//	This is a simple model class used to hold info about each path we watch.
+// This is a simple model class used to hold info about each path we watch.
+
 @interface VDKQueuePathEntry : NSObject
 {
 	NSString*		_path;
@@ -56,7 +57,7 @@ NSString * VDKQueueAccessRevocationNotification = @"VDKQueueAccessWasRevokedNoti
 @synthesize path = _path, watchedFD = _watchedFD, subscriptionFlags = _subscriptionFlags;
 
 
-- (id) initWithPath:(NSString*)inPath andSubscriptionFlags:(u_int)flags;
+- (id) initWithPath:(NSString*)inPath andSubscriptionFlags:(u_int)flags
 {
 	self = [super init];
 	if (self)
@@ -209,11 +210,6 @@ NSString * VDKQueueAccessRevocationNotification = @"VDKQueueAccessWasRevokedNoti
 	return nil;
 }
 
-
-//
-//	WARNING: This thread has no active autorelease pool, so if you make changes, you must manually manage
-//			memory without relying on autorelease. Otherwise, you will leak!
-//
 - (void) watcherThread:(id)sender
 {
 	int					n;
@@ -256,69 +252,70 @@ NSString * VDKQueueAccessRevocationNotification = @"VDKQueueAccessWasRevokedNoti
 							NSString *fpath = ARCCompatRetainInline( ((VDKQueuePathEntry *)pe).path );		// Need to retain so it does not disappear while the block at the bottom is waiting to run on the main thread. Released in that block.
 							if (!fpath) continue;
 
+                            @autoreleasepool {
 #if !TARGET_OS_IPHONE
-							[[NSWorkspace sharedWorkspace] noteFileSystemChanged:fpath];
+    							[[NSWorkspace sharedWorkspace] noteFileSystemChanged:fpath];
 #endif
 
-							// Clear any old notifications
-							[notesToPost removeAllObjects];
+    							// Clear any old notifications
+    							[notesToPost removeAllObjects];
 
-							// Figure out which notifications we need to issue
-							if ((ev.fflags & NOTE_RENAME) == NOTE_RENAME)
-							{
-								[notesToPost addObject:VDKQueueRenameNotification];
-							}
-							if ((ev.fflags & NOTE_WRITE) == NOTE_WRITE)
-							{
-								[notesToPost addObject:VDKQueueWriteNotification];
-							}
-							if ((ev.fflags & NOTE_DELETE) == NOTE_DELETE)
-							{
-								[notesToPost addObject:VDKQueueDeleteNotification];
-							}
-							if ((ev.fflags & NOTE_ATTRIB) == NOTE_ATTRIB)
-							{
-								[notesToPost addObject:VDKQueueAttributeChangeNotification];
-							}
-							if ((ev.fflags & NOTE_EXTEND) == NOTE_EXTEND)
-							{
-								[notesToPost addObject:VDKQueueSizeIncreaseNotification];
-							}
-							if ((ev.fflags & NOTE_LINK) == NOTE_LINK)
-							{
-								[notesToPost addObject:VDKQueueLinkCountChangeNotification];
-							}
-							if ((ev.fflags & NOTE_REVOKE) == NOTE_REVOKE)
-							{
-								[notesToPost addObject:VDKQueueAccessRevocationNotification];
-							}
-
-
-							NSArray *notes = [[NSArray alloc] initWithArray:notesToPost];	// notesToPost will be changed in the next loop iteration, which will likely occur before the block below runs.
+    							// Figure out which notifications we need to issue
+    							if ((ev.fflags & NOTE_RENAME) == NOTE_RENAME)
+    							{
+    								[notesToPost addObject:VDKQueueRenameNotification];
+    							}
+    							if ((ev.fflags & NOTE_WRITE) == NOTE_WRITE)
+    							{
+    								[notesToPost addObject:VDKQueueWriteNotification];
+    							}
+    							if ((ev.fflags & NOTE_DELETE) == NOTE_DELETE)
+    							{
+    								[notesToPost addObject:VDKQueueDeleteNotification];
+    							}
+    							if ((ev.fflags & NOTE_ATTRIB) == NOTE_ATTRIB)
+    							{
+    								[notesToPost addObject:VDKQueueAttributeChangeNotification];
+    							}
+    							if ((ev.fflags & NOTE_EXTEND) == NOTE_EXTEND)
+    							{
+    								[notesToPost addObject:VDKQueueSizeIncreaseNotification];
+    							}
+    							if ((ev.fflags & NOTE_LINK) == NOTE_LINK)
+    							{
+    								[notesToPost addObject:VDKQueueLinkCountChangeNotification];
+    							}
+    							if ((ev.fflags & NOTE_REVOKE) == NOTE_REVOKE)
+    							{
+    								[notesToPost addObject:VDKQueueAccessRevocationNotification];
+    							}
 
 
-							// Post the notifications (or call the delegate method) on the main thread.
-							dispatch_async(dispatch_get_main_queue(),
-										   ^{
-											   for (NSString *note in notes)
-											   {
-												   [_delegate VDKQueue:self receivedNotification:note forPath:fpath];
+    							NSArray *notes = [[NSArray alloc] initWithArray:notesToPost];	// notesToPost will be changed in the next loop iteration, which will likely occur before the block below runs.
 
-												   if (!_delegate || _alwaysPostNotifications)
-												   {
-													   NSDictionary *userInfoDict = [[NSDictionary alloc] initWithObjectsAndKeys:fpath, @"path", nil];
+
+    							// Post the notifications (or call the delegate method) on the main thread.
+    							dispatch_async(dispatch_get_main_queue(), ^{
+                                    for (NSString *note in notes)
+                                    {
+                                        [_delegate VDKQueue:self receivedNotification:note forPath:fpath];
+
+                                        if (!_delegate || _alwaysPostNotifications)
+                                        {
+                                            NSDictionary *userInfoDict = [[NSDictionary alloc] initWithObjectsAndKeys:fpath, @"path", nil];
 #if TARGET_OS_IPHONE
-													   [[NSNotificationCenter defaultCenter] postNotificationName:note object:self userInfo:userInfoDict];
+                                            [[NSNotificationCenter defaultCenter] postNotificationName:note object:self userInfo:userInfoDict];
 #else
-													   [[[NSWorkspace sharedWorkspace] notificationCenter] postNotificationName:note object:self userInfo:userInfoDict];
+                                            [[[NSWorkspace sharedWorkspace] notificationCenter] postNotificationName:note object:self userInfo:userInfoDict];
 #endif
-													   ARCCompatRelease(userInfoDict)
-												   }
-											   }
-
-											   ARCCompatRelease(fpath)
-											   ARCCompatRelease(notes)
-										   });
+                                            ARCCompatRelease(userInfoDict)
+                                        }
+                                    }
+                                    
+                                    ARCCompatRelease(fpath)
+                                    ARCCompatRelease(notes)
+							    });
+                            }
 						}
 					}
 				}
