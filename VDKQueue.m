@@ -101,6 +101,8 @@ NSString *const VDKQueueAccessRevocationNotification = @"VDKQueueAccessWasRevoke
         _sleepInterval = 0;
 #endif
         _watchedPathEntries = [[NSMutableDictionary alloc] init];
+
+		_queue = dispatch_get_main_queue();
     }
     return self;
 }
@@ -242,8 +244,8 @@ NSString *const VDKQueueAccessRevocationNotification = @"VDKQueueAccessWasRevoke
 
                 NSArray *notes = [[NSArray alloc] initWithArray:notesToPost];   // notesToPost will be changed in the next loop iteration, which will likely occur before the block below runs.
 
-                // Post the notifications (or call the delegate method) on the main thread.
-                dispatch_async(dispatch_get_main_queue(), ^{
+                // Post the notifications (or call the delegate method) on the specified queue.
+                dispatch_async(_queue, ^{
                     for (NSString *note in notes)
                     {
                         [_delegate queue:self didReceiveNotification:note forPath:fpath];

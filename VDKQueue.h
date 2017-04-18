@@ -130,6 +130,7 @@ extern NSString *const VDKQueueAccessRevocationNotification;
 @interface VDKQueue : NSObject
 
 @property (nonatomic, weak) id <VDKQueueDelegate> delegate;
+@property (nonatomic, retain) dispatch_queue_t queue;
 /**
  * By default, notifications are posted only if there is no delegate set.
  * Set this value to @c YES to have notes posted even when there is a delegate.
