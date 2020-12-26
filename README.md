@@ -3,7 +3,7 @@ VDKQueue
 
 A modern, faster, better version of UKKQueue.
 
-<http://incident57.com/codekit>
+<https://github.com/bdkjones/VDKQueue>
 
 
 about
