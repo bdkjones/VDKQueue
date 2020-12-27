@@ -1,42 +1,42 @@
-//	VDKQueue.h
-//	Created by Bryan D K Jones on 28 March 2012
-//	Copyright 2013 Bryan D K Jones
+//  VDKQueue.h
+//  Created by Bryan D K Jones on 28 March 2012
+//  Copyright 2013 Bryan D K Jones
 //
 //  Based heavily on UKKQueue, which was created and copyrighted by Uli Kusterer on 21 Dec 2003.
 //
-//	This software is provided 'as-is', without any express or implied
-//	warranty. In no event will the authors be held liable for any damages
-//	arising from the use of this software.
-//	Permission is granted to anyone to use this software for any purpose,
-//	including commercial applications, and to alter it and redistribute it
-//	freely, subject to the following restrictions:
-//	   1. The origin of this software must not be misrepresented; you must not
-//	   claim that you wrote the original software. If you use this software
-//	   in a product, an acknowledgment in the product documentation would be
-//	   appreciated but is not required.
-//	   2. Altered source versions must be plainly marked as such, and must not be
-//	   misrepresented as being the original software.
-//	   3. This notice may not be removed or altered from any source
-//	   distribution.
+//  This software is provided 'as-is', without any express or implied
+//  warranty. In no event will the authors be held liable for any damages
+//  arising from the use of this software.
+//  Permission is granted to anyone to use this software for any purpose,
+//  including commercial applications, and to alter it and redistribute it
+//  freely, subject to the following restrictions:
+//      1. The origin of this software must not be misrepresented; you must not
+//      claim that you wrote the original software. If you use this software
+//      in a product, an acknowledgment in the product documentation would be
+//      appreciated but is not required.
+//      2. Altered source versions must be plainly marked as such, and must not be
+//      misrepresented as being the original software.
+//      3. This notice may not be removed or altered from any source
+//      distribution.
 
 //
 //  BASED ON UKKQUEUE:
 //
 //      This is an updated, modernized and streamlined version of the excellent UKKQueue class, which was authored by Uli Kusterer.
-//      UKKQueue was written back in 2003 and there have been many, many improvements to Objective-C since then. VDKQueue uses the 
+//      UKKQueue was written back in 2003 and there have been many, many improvements to Objective-C since then. VDKQueue uses the
 //      core of Uli's original class, but makes it faster and more efficient. Method calls are reduced. Grand Central Dispatch is used in place
 //      of Uli's "threadProxy" objects. The memory footprint is roughly halved, as I don't create the overhead that UKKQueue does.
 //
 //      VDKQueue is also simplified. The option to use it as a singleton is removed. You simply alloc/init an instance and add paths you want to
-//      watch. Your objects can be alerted to changes either by notifications or by a delegate method (or both). See below. 
+//      watch. Your objects can be alerted to changes either by notifications or by a delegate method (or both). See below.
 //
 //      It also fixes several bugs. For one, it won't crash if it can't create a file descriptor to a file you ask it to watch. (By default, an OS X process can only
 //      have about 3,000 file descriptors open at once. If you hit that limit, UKKQueue will crash. VDKQueue will not.)
 //
 
 //
-//  DEPENDENCIES: 
-//      
+//  DEPENDENCIES:
+//
 //      VDKQueue requires OS 10.6+ because it relies on Grand Central Dispatch.
 //
 
@@ -57,94 +57,101 @@
 //
 //      Other frameworks out there try to work around this issue by immediately attempting to re-open the file descriptor to the path. This is not bulletproof and may fail;
 //      it all depends on the timing of disk I/O. Bottom line: you could not rely on it and might miss future changes to the file path you're supposedly watching. That's why
-//      VDKQueue does not take this approach, but favors the "manual" method of "stop-watching-then-rewatch". 
+//      VDKQueue does not take this approach, but favors the "manual" method of "stop-watching-then-rewatch".
 //
-
-
 
 #import <Foundation/Foundation.h>
-#include <sys/types.h>
+
 #include <sys/event.h>
 
+/**
+ * Logical OR these values into the flags that you pass in the @c -addPath:notifyingAbout: method
+ * to specify the types of notifications you're interested in.
+ * Pass VDKQueueEventAll to receive all of them.
+ */
+typedef NS_OPTIONS(unsigned, VDKQueueEvent) {
+    /// Item was renamed.
+    VDKQueueEventRename = NOTE_RENAME,
 
-//
-//  Logical OR these values into the u_int that you pass in the -addPath:notifyingAbout: method
-//  to specify the types of notifications you're interested in. Pass the default value to receive all of them.
-//
-#define VDKQueueNotifyAboutRename					NOTE_RENAME		// Item was renamed.
-#define VDKQueueNotifyAboutWrite					NOTE_WRITE		// Item contents changed (also folder contents changed).
-#define VDKQueueNotifyAboutDelete					NOTE_DELETE		// item was removed.
-#define VDKQueueNotifyAboutAttributeChange			NOTE_ATTRIB		// Item attributes changed.
-#define VDKQueueNotifyAboutSizeIncrease				NOTE_EXTEND		// Item size increased.
-#define VDKQueueNotifyAboutLinkCountChanged			NOTE_LINK		// Item's link count changed.
-#define VDKQueueNotifyAboutAccessRevocation			NOTE_REVOKE		// Access to item was revoked.
+    /// Item contents changed (also folder contents changed).
+    VDKQueueEventWrite = NOTE_WRITE,
 
-#define VDKQueueNotifyDefault						(VDKQueueNotifyAboutRename | VDKQueueNotifyAboutWrite \
-                                                    | VDKQueueNotifyAboutDelete | VDKQueueNotifyAboutAttributeChange \
-                                                    | VDKQueueNotifyAboutSizeIncrease | VDKQueueNotifyAboutLinkCountChanged \
-                                                    | VDKQueueNotifyAboutAccessRevocation)
+    /// Item was removed.
+    VDKQueueEventDelete = NOTE_DELETE,
+
+    /// Item attributes changed.
+    VDKQueueEventAttributeChange = NOTE_ATTRIB,
+
+    /// Item size increased.
+    VDKQueueEventSizeIncrease = NOTE_EXTEND,
+
+    /// Item's link count changed.
+    VDKQueueEventLinkCountChanged = NOTE_LINK,
+
+    /// Access to item was revoked.
+    VDKQueueEventAccessRevocation = NOTE_REVOKE,
+
+    /// All events.
+    VDKQueueEventAll = VDKQueueEventRename
+                     | VDKQueueEventWrite
+                     | VDKQueueEventDelete
+                     | VDKQueueEventAttributeChange
+                     | VDKQueueEventSizeIncrease
+                     | VDKQueueEventLinkCountChanged
+                     | VDKQueueEventAccessRevocation
+};
 
 //
 //  Notifications that this class sends to the NSWORKSPACE notification center.
 //      Object          =   the instance of VDKQueue that was watching for changes
 //      userInfo.path   =   the file path where the change was observed
 //
-extern NSString * VDKQueueRenameNotification;
-extern NSString * VDKQueueWriteNotification;
-extern NSString * VDKQueueDeleteNotification;
-extern NSString * VDKQueueAttributeChangeNotification;
-extern NSString * VDKQueueSizeIncreaseNotification;
-extern NSString * VDKQueueLinkCountChangeNotification;
-extern NSString * VDKQueueAccessRevocationNotification;
-
-
+extern NSString *const VDKQueueRenameNotification;
+extern NSString *const VDKQueueWriteNotification;
+extern NSString *const VDKQueueDeleteNotification;
+extern NSString *const VDKQueueAttributeChangeNotification;
+extern NSString *const VDKQueueSizeIncreaseNotification;
+extern NSString *const VDKQueueLinkCountChangeNotification;
+extern NSString *const VDKQueueAccessRevocationNotification;
 
 //
 //  Or, instead of subscribing to notifications, you can specify a delegate and implement this method to respond to kQueue events.
 //  Note the required statement! For speed, this class does not check to make sure the delegate implements this method. (When I say "required" I mean it!)
 //
-@class VDKQueue;
-@protocol VDKQueueDelegate <NSObject>
-@required
 
--(void) VDKQueue:(VDKQueue *)queue receivedNotification:(NSString*)noteName forPath:(NSString*)fpath;
+@class VDKQueue;
+
+@protocol VDKQueueDelegate <NSObject>
+
+- (void)queue:(VDKQueue *)queue didReceiveNotification:(NSString *)notificationName forPath:(NSString *)fpath;
 
 @end
 
-
-
-
-
 @interface VDKQueue : NSObject
-{
-    id<VDKQueueDelegate>    _delegate;
-    BOOL                    _alwaysPostNotifications;               // By default, notifications are posted only if there is no delegate set. Set this value to YES to have notes posted even when there is a delegate.
-    
-@private
-    int						_coreQueueFD;                           // The actual kqueue ID (Unix file descriptor).
-	NSMutableDictionary    *_watchedPathEntries;                    // List of VDKQueuePathEntries. Keys are NSStrings of the path that each VDKQueuePathEntry is for.
-    BOOL                    _keepWatcherThreadRunning;              // Set to NO to cancel the thread that watches _coreQueueFD for kQueue events
-}
 
+@property (nonatomic, weak) id <VDKQueueDelegate> delegate;
+@property (nonatomic, retain) dispatch_queue_t queue;
+/**
+ * By default, notifications are posted only if there is no delegate set.
+ * Set this value to @c YES to have notes posted even when there is a delegate.
+ */
+@property (nonatomic) BOOL alwaysPostNotifications;
+@property (nonatomic) NSTimeInterval sleepInterval;
 
-//
-//  Note: there is no need to ask whether a path is already being watched. Just add it or remove it and this class
-//        will take action only if appropriate. (Add only if we're not already watching it, remove only if we are.)
-//  
-//  Warning: You must pass full, root-relative paths. Do not pass tilde-abbreviated paths or file URLs. 
-//
-- (void) addPath:(NSString *)aPath;
-- (void) addPath:(NSString *)aPath notifyingAbout:(u_int)flags;     // See note above for values to pass in "flags"
+/**
+ *  Note: there is no need to ask whether a path is already being watched. Just add it or remove it and this class
+ *      will take action only if appropriate. (Add only if we're not already watching it, remove only if we are.)
+ *
+ *  Warning: You must pass full, root-relative paths. Do not pass tilde-abbreviated paths or file URLs.
+ */
+- (void)addPath:(NSString *)aPath;
+/// See note above for values to pass in "flags"
+- (void)addPath:(NSString *)aPath notifyingAbout:(VDKQueueEvent)flags;
 
-- (void) removePath:(NSString *)aPath;
-- (void) removeAllPaths;
+- (void)removePath:(NSString *)aPath;
+- (void)removeAllPaths;
 
-
-- (NSUInteger) numberOfWatchedPaths;                                //  Returns the number of paths that this VDKQueue instance is actively watching.
-
-
-
-@property (assign) id<VDKQueueDelegate> delegate;
-@property (assign) BOOL alwaysPostNotifications;
+/// Returns the number of paths that this VDKQueue instance is actively watching.
+- (NSUInteger)numberOfWatchedPaths;
 
 @end
