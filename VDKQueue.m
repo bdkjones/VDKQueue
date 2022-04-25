@@ -1,23 +1,23 @@
-//	VDKQueue.m
-//	Created by Bryan D K Jones on 28 March 2012
-//	Copyright 2013 Bryan D K Jones
+//    VDKQueue.m
+//    Created by Bryan D K Jones on 28 March 2012
+//    Copyright 2013 Bryan D K Jones
 //
 //  Based heavily on UKKQueue, which was created and copyrighted by Uli Kusterer on 21 Dec 2003.
 //
-//	This software is provided 'as-is', without any express or implied
-//	warranty. In no event will the authors be held liable for any damages
-//	arising from the use of this software.
-//	Permission is granted to anyone to use this software for any purpose,
-//	including commercial applications, and to alter it and redistribute it
-//	freely, subject to the following restrictions:
-//	   1. The origin of this software must not be misrepresented; you must not
-//	   claim that you wrote the original software. If you use this software
-//	   in a product, an acknowledgment in the product documentation would be
-//	   appreciated but is not required.
-//	   2. Altered source versions must be plainly marked as such, and must not be
-//	   misrepresented as being the original software.
-//	   3. This notice may not be removed or altered from any source
-//	   distribution.
+//    This software is provided 'as-is', without any express or implied
+//    warranty. In no event will the authors be held liable for any damages
+//    arising from the use of this software.
+//    Permission is granted to anyone to use this software for any purpose,
+//    including commercial applications, and to alter it and redistribute it
+//    freely, subject to the following restrictions:
+//       1. The origin of this software must not be misrepresented; you must not
+//       claim that you wrote the original software. If you use this software
+//       in a product, an acknowledgment in the product documentation would be
+//       appreciated but is not required.
+//       2. Altered source versions must be plainly marked as such, and must not be
+//       misrepresented as being the original software.
+//       3. This notice may not be removed or altered from any source
+//       distribution.
 
 #import "VDKQueue.h"
 #import <unistd.h>
@@ -39,14 +39,14 @@ NSString * VDKQueueAccessRevocationNotification = @"VDKQueueAccessWasRevokedNoti
 #pragma mark -
 #pragma mark VDKQueuePathEntry
 #pragma mark -
-#pragma ------------------------------------------------------------------------------------------------------------------------------------------------------------
+#pragma -----------------------------------------------------------------------
 
 //  This is a simple model class used to hold info about each path we watch.
 @interface VDKQueuePathEntry : NSObject
 {
-	NSString*		_path;
-	int				_watchedFD;
-	u_int			_subscriptionFlags;
+    NSString*        _path;
+    int                _watchedFD;
+    u_int            _subscriptionFlags;
 }
 
 - (id) initWithPath:(NSString*)inPath andSubscriptionFlags:(u_int)flags;
@@ -61,32 +61,32 @@ NSString * VDKQueueAccessRevocationNotification = @"VDKQueueAccessWasRevokedNoti
 @synthesize path = _path, watchedFD = _watchedFD, subscriptionFlags = _subscriptionFlags;
 
 
-- (id) initWithPath:(NSString*)inPath andSubscriptionFlags:(u_int)flags;
+- (id) initWithPath:(NSString*)inPath andSubscriptionFlags:(u_int)flags
 {
     self = [super init];
-	if (self)
-	{
-		_path = [inPath copy];
-		_watchedFD = open([_path fileSystemRepresentation], O_EVTONLY, 0);
-		if (_watchedFD < 0)
-		{
-			[self autorelease];
-			return nil;
-		}
-		_subscriptionFlags = flags;
-	}
-	return self;
+    if (self)
+    {
+        _path = [inPath copy];
+        _watchedFD = open([_path fileSystemRepresentation], O_EVTONLY, 0);
+        if (_watchedFD < 0)
+        {
+            [self autorelease];
+            return nil;
+        }
+        _subscriptionFlags = flags;
+    }
+    return self;
 }
 
--(void)	dealloc
+- (void) dealloc
 {
-	[_path release];
-	_path = nil;
+    [_path release];
+    _path = nil;
     
-	if (_watchedFD >= 0) close(_watchedFD);
-	_watchedFD = -1;
-	
-	[super dealloc];
+    if (_watchedFD >= 0) close(_watchedFD);
+    _watchedFD = -1;
+    
+    [super dealloc];
 }
 
 @end
@@ -94,17 +94,10 @@ NSString * VDKQueueAccessRevocationNotification = @"VDKQueueAccessWasRevokedNoti
 
 
 
-
-
-
-
-
-
-
 #pragma mark -
 #pragma mark VDKQueue
 #pragma mark -
-#pragma ------------------------------------------------------------------------------------------------------------------------------------------------------------
+#pragma -----------------------------------------------------------------------
 
 @interface VDKQueue ()
 - (void) watcherThread:(id)sender;
@@ -122,20 +115,20 @@ NSString * VDKQueueAccessRevocationNotification = @"VDKQueueAccessWasRevokedNoti
 
 - (id) init
 {
-	self = [super init];
-	if (self)
-	{
-		_coreQueueFD = kqueue();
-		if (_coreQueueFD == -1)
-		{
-			[self autorelease];
-			return nil;
-		}
-		
+    self = [super init];
+    if (self)
+    {
+        _coreQueueFD = kqueue();
+        if (_coreQueueFD == -1)
+        {
+            [self autorelease];
+            return nil;
+        }
+        
         _alwaysPostNotifications = NO;
-		_watchedPathEntries = [[NSMutableDictionary alloc] init];
-	}
-	return self;
+        _watchedPathEntries = [[NSMutableDictionary alloc] init];
+    }
+    return self;
 }
 
 
@@ -156,51 +149,50 @@ NSString * VDKQueueAccessRevocationNotification = @"VDKQueueAccessWasRevokedNoti
 
 
 
-
 #pragma mark -
 #pragma mark PRIVATE METHODS
 
-- (VDKQueuePathEntry *)	addPathToQueue:(NSString *)path notifyingAbout:(u_int)flags
+- (VDKQueuePathEntry *) addPathToQueue:(NSString *)path notifyingAbout:(u_int)flags
 {
-	@synchronized(self)
-	{
+    @synchronized(self)
+    {
         // Are we already watching this path?
-		VDKQueuePathEntry *pathEntry = [_watchedPathEntries objectForKey:path];
-		
+        VDKQueuePathEntry *pathEntry = [_watchedPathEntries objectForKey:path];
+        
         if (pathEntry)
-		{
+        {
             // All flags already set?
-			if(([pathEntry subscriptionFlags] & flags) == flags) 
+            if (([pathEntry subscriptionFlags] & flags) == flags)
             {
-				return [[pathEntry retain] autorelease]; 
+                return [[pathEntry retain] autorelease];
             }
-			
-			flags |= [pathEntry subscriptionFlags];
-		}
-		
-		struct timespec		nullts = { 0, 0 };
-		struct kevent		ev;
-		
-		if (!pathEntry)
+            
+            flags |= [pathEntry subscriptionFlags];
+        }
+        
+        struct timespec        nullts = { 0, 0 };
+        struct kevent        ev;
+        
+        if (!pathEntry)
         {
             pathEntry = [[[VDKQueuePathEntry alloc] initWithPath:path andSubscriptionFlags:flags] autorelease];
         }
         
-		if (pathEntry)
-		{
-			EV_SET(&ev, [pathEntry watchedFD], EVFILT_VNODE, EV_ADD | EV_ENABLE | EV_CLEAR, flags, 0, pathEntry);
-			
-			[pathEntry setSubscriptionFlags:flags];
+        if (pathEntry)
+        {
+            EV_SET(&ev, [pathEntry watchedFD], EVFILT_VNODE, EV_ADD | EV_ENABLE | EV_CLEAR, flags, 0, pathEntry);
+            
+            [pathEntry setSubscriptionFlags:flags];
             
             [_watchedPathEntries setObject:pathEntry forKey:path];
             kevent(_coreQueueFD, &ev, 1, NULL, 0, &nullts);
             
-			// Start the thread that fetches and processes our events if it's not already running.
-			if(!_keepWatcherThreadRunning)
-			{
-				_keepWatcherThreadRunning = YES;
-				[NSThread detachNewThreadSelector:@selector(watcherThread:) toTarget:self withObject:nil];
-			}
+            // Start the thread that fetches and processes our events if it's not already running.
+            if (!_keepWatcherThreadRunning)
+            {
+                _keepWatcherThreadRunning = YES;
+                [NSThread detachNewThreadSelector:@selector(watcherThread:) toTarget:self withObject:nil];
+            }
         }
         
         return [[pathEntry retain] autorelease];
@@ -211,25 +203,25 @@ NSString * VDKQueueAccessRevocationNotification = @"VDKQueueAccessWasRevokedNoti
 
 
 //
-//  WARNING: This thread has no active autorelease pool, so if you make changes, you must manually manage 
+//  WARNING: This thread has no active autorelease pool, so if you make changes, you must manually manage
 //           memory without relying on autorelease. Otherwise, you will leak!
 //
 - (void) watcherThread:(id)sender
 {
-    int					n;
-    struct kevent		ev;
+    int                    n;
+    struct kevent        ev;
     struct timespec     timeout = { 1, 0 };     // 1 second timeout. Should be longer, but we need this thread to exit when a kqueue is dealloced, so 1 second timeout is quite a while to wait.
-	int					theFD = _coreQueueFD;	// So we don't have to risk accessing iVars when the thread is terminated.
+    int                    theFD = _coreQueueFD;    // So we don't have to risk accessing iVars when the thread is terminated.
     
     NSMutableArray      *notesToPost = [[NSMutableArray alloc] initWithCapacity:5];
     
 #if DEBUG_LOG_THREAD_LIFETIME
-	NSLog(@"watcherThread started.");
+    NSLog(@"watcherThread started.");
 #endif
-	
-    while(_keepWatcherThreadRunning)
+    
+    while (_keepWatcherThreadRunning)
     {
-        @try 
+        @try
         {
             n = kevent(theFD, NULL, 0, &ev, 1, &timeout);
             if (n > 0)
@@ -319,33 +311,30 @@ NSString * VDKQueueAccessRevocationNotification = @"VDKQueueAccessWasRevokedNoti
             }
         }
         
-        @catch (NSException *localException) 
+        @catch (NSException *localException)
         {
             NSLog(@"Error in VDKQueue watcherThread: %@", localException);
         }
     }
     
-	// Close our kqueue's file descriptor
-	if(close(theFD) == -1) {
-       NSLog(@"VDKQueue watcherThread: Couldn't close main kqueue (%d)", errno); 
+    // Close our kqueue's file descriptor
+    if (close(theFD) == -1) {
+       NSLog(@"VDKQueue watcherThread: Couldn't close main kqueue (%d)", errno);
     }
     
     [notesToPost release];
     
 #if DEBUG_LOG_THREAD_LIFETIME
-	NSLog(@"watcherThread finished.");
+    NSLog(@"watcherThread finished.");
 #endif
-
 }
-
-
 
 
 
 
 #pragma mark -
 #pragma mark PUBLIC METHODS
-#pragma -----------------------------------------------------------------------------------------------------------------------------------------------------
+#pragma -----------------------------------------------------------------------
 
 
 - (void) addPath:(NSString *)aPath
@@ -400,14 +389,14 @@ NSString * VDKQueueAccessRevocationNotification = @"VDKQueueAccessWasRevokedNoti
     [aPath retain];
     
     @synchronized(self)
-	{
-		VDKQueuePathEntry *entry = [_watchedPathEntries objectForKey:aPath];
+    {
+        VDKQueuePathEntry *entry = [_watchedPathEntries objectForKey:aPath];
         
         // Remove it only if we're watching it.
         if (entry) {
             [_watchedPathEntries removeObjectForKey:aPath];
         }
-	}
+    }
     
     [aPath release];
 }
@@ -435,7 +424,4 @@ NSString * VDKQueueAccessRevocationNotification = @"VDKQueueAccessWasRevokedNoti
 }
 
 
-
-
 @end
-
