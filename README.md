@@ -22,7 +22,7 @@ Objective-C has come a long way in the past nine years and UKKQueue was long in 
 	-- The code is *much* cleaner and simpler!
 	-- There is only one .h and one .m file to include.
 	
-VDKQueue also fixes long-standing bugs in UKKQueue. For example: OS X limits the number of open file descriptors each process
+VDKQueue also fixes long-standing bugs in UKKQueue. For example: macOS limits the number of open file descriptors each process
 may have to about 3,000. If UKKQueue fails to open a new file descriptor because it has hit this limit, it will crash. VDKQueue will not.
 	
 	

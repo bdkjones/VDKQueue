@@ -30,7 +30,7 @@
 //      VDKQueue is also simplified. The option to use it as a singleton is removed. You simply alloc/init an instance and add paths you want to
 //      watch. Your objects can be alerted to changes either by notifications or by a delegate method (or both). See below. 
 //
-//      It also fixes several bugs. For one, it won't crash if it can't create a file descriptor to a file you ask it to watch. (By default, an OS X process can only
+//      It also fixes several bugs. For one, it won't crash if it can't create a file descriptor to a file you ask it to watch. (By default, a macOS process can only
 //      have about 3,000 file descriptors open at once. If you hit that limit, UKKQueue will crash. VDKQueue will not.)
 //
 
@@ -43,7 +43,7 @@
 //
 //  IMPORTANT NOTE ABOUT ATOMIC OPERATIONS
 //
-//      There are two ways of saving a file on OS X: Atomic and Non-Atomic. In a non-atomic operation, a file is saved by directly overwriting it with new data.
+//      There are two ways of saving a file on macOS: Atomic and Non-Atomic. In a non-atomic operation, a file is saved by directly overwriting it with new data.
 //      In an Atomic save, a temporary file is first written to a different location on disk. When that completes successfully, the original file is deleted and the
 //      temporary one is renamed and moved into place where the original file existed.
 //
