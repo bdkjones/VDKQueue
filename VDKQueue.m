@@ -20,6 +20,7 @@
 //	   distribution.
 
 #import "VDKQueue.h"
+#import <AppKit/AppKit.h>
 #import <unistd.h>
 #import <fcntl.h>
 #include <sys/stat.h>
@@ -43,11 +44,6 @@ NSString * VDKQueueAccessRevocationNotification = @"VDKQueueAccessWasRevokedNoti
 
 //  This is a simple model class used to hold info about each path we watch.
 @interface VDKQueuePathEntry : NSObject
-{
-	NSString*		_path;
-	int				_watchedFD;
-	u_int			_subscriptionFlags;
-}
 
 - (id) initWithPath:(NSString*)inPath andSubscriptionFlags:(u_int)flags;
 
@@ -58,10 +54,15 @@ NSString * VDKQueueAccessRevocationNotification = @"VDKQueueAccessWasRevokedNoti
 @end
 
 @implementation VDKQueuePathEntry
+{
+    NSString*        _path;
+    int                _watchedFD;
+    u_int            _subscriptionFlags;
+}
 @synthesize path = _path, watchedFD = _watchedFD, subscriptionFlags = _subscriptionFlags;
 
 
-- (id) initWithPath:(NSString*)inPath andSubscriptionFlags:(u_int)flags;
+- (id) initWithPath:(NSString*)inPath andSubscriptionFlags:(u_int)flags
 {
     self = [super init];
 	if (self)
@@ -113,6 +114,15 @@ NSString * VDKQueueAccessRevocationNotification = @"VDKQueueAccessWasRevokedNoti
 
 
 @implementation VDKQueue
+{
+@private
+    /// The actual kqueue ID (Unix file descriptor).
+    int                        _coreQueueFD;
+    /// List of VDKQueuePathEntries. Keys are NSStrings of the path that each VDKQueuePathEntry is for.
+    NSMutableDictionary    *_watchedPathEntries;
+    /// Set to NO to cancel the thread that watches _coreQueueFD for kQueue events
+    BOOL                    _keepWatcherThreadRunning;
+}
 @synthesize delegate = _delegate, alwaysPostNotifications = _alwaysPostNotifications;
 
 
@@ -205,8 +215,6 @@ NSString * VDKQueueAccessRevocationNotification = @"VDKQueueAccessWasRevokedNoti
         
         return [[pathEntry retain] autorelease];
     }
-    
-    return nil;
 }
 
 
