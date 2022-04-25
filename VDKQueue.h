@@ -116,15 +116,6 @@ extern NSString * VDKQueueAccessRevocationNotification;
 
 
 @interface VDKQueue : NSObject
-{
-    id<VDKQueueDelegate>    _delegate;
-    BOOL                    _alwaysPostNotifications;               // By default, notifications are posted only if there is no delegate set. Set this value to YES to have notes posted even when there is a delegate.
-    
-@private
-    int						_coreQueueFD;                           // The actual kqueue ID (Unix file descriptor).
-	NSMutableDictionary    *_watchedPathEntries;                    // List of VDKQueuePathEntries. Keys are NSStrings of the path that each VDKQueuePathEntry is for.
-    BOOL                    _keepWatcherThreadRunning;              // Set to NO to cancel the thread that watches _coreQueueFD for kQueue events
-}
 
 
 //
@@ -139,12 +130,14 @@ extern NSString * VDKQueueAccessRevocationNotification;
 - (void) removePath:(NSString *)aPath;
 - (void) removeAllPaths;
 
+///  Returns the number of paths that this VDKQueue instance is actively watching.
+- (NSUInteger) numberOfWatchedPaths;
 
-- (NSUInteger) numberOfWatchedPaths;                                //  Returns the number of paths that this VDKQueue instance is actively watching.
+
+@property (nonatomic, assign) id<VDKQueueDelegate> delegate;
+/// By default, notifications are posted only if there is no delegate set. Set this value to YES to have notes posted even when there is a delegate.
+@property (nonatomic, assign) BOOL alwaysPostNotifications;
 
 
-
-@property (assign) id<VDKQueueDelegate> delegate;
-@property (assign) BOOL alwaysPostNotifications;
 
 @end
