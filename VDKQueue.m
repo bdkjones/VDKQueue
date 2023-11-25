@@ -54,6 +54,7 @@ NSString * VDKQueueAccessRevocationNotification = @"VDKQueueAccessWasRevokedNoti
 @property (atomic, copy) NSString *path;
 @property (atomic, assign) int watchedFD;
 @property (atomic, assign) u_int subscriptionFlags;
+@property (atomic, assign) uintptr_t uniqueId;
 
 @end
 
@@ -134,6 +135,7 @@ NSString * VDKQueueAccessRevocationNotification = @"VDKQueueAccessWasRevokedNoti
 		
         _alwaysPostNotifications = NO;
 		_watchedPathEntries = [[NSMutableDictionary alloc] init];
+		_pathMap = [[NSMutableDictionary alloc] init];
 	}
 	return self;
 }
@@ -149,6 +151,7 @@ NSString * VDKQueueAccessRevocationNotification = @"VDKQueueAccessWasRevokedNoti
     
     [_watchedPathEntries release];
     _watchedPathEntries = nil;
+	[_pathMap release];
     
     [super dealloc];
 }
@@ -162,6 +165,7 @@ NSString * VDKQueueAccessRevocationNotification = @"VDKQueueAccessWasRevokedNoti
 
 - (VDKQueuePathEntry *)	addPathToQueue:(NSString *)path notifyingAbout:(u_int)flags
 {
+	static uintptr_t gUniqueID = 0;
 	@synchronized(self)
 	{
         // Are we already watching this path?
@@ -188,9 +192,11 @@ NSString * VDKQueueAccessRevocationNotification = @"VDKQueueAccessWasRevokedNoti
         
 		if (pathEntry)
 		{
-			EV_SET(&ev, [pathEntry watchedFD], EVFILT_VNODE, EV_ADD | EV_ENABLE | EV_CLEAR, flags, 0, pathEntry);
+			EV_SET(&ev, [pathEntry watchedFD], EVFILT_VNODE, EV_ADD | EV_ENABLE | EV_CLEAR, flags, 0, (void *)gUniqueID);
 			
 			[pathEntry setSubscriptionFlags:flags];
+			[pathEntry setUniqueId:gUniqueID];
+			[_pathMap setObject:pathEntry forKey:@(gUniqueID++)];
             
             [_watchedPathEntries setObject:pathEntry forKey:path];
             kevent(_coreQueueFD, &ev, 1, NULL, 0, &nullts);
@@ -242,18 +248,15 @@ NSString * VDKQueueAccessRevocationNotification = @"VDKQueueAccessWasRevokedNoti
                     {
                         //NSLog( @"KEVENT flags are set" );
                         
-                        //
-                        //  Note: VDKQueue gets tested by thousands of CodeKit users who each watch several thousand files at once.
-                        //        I was receiving about 3 EXC_BAD_ACCESS (SIGSEGV) crash reports a month that listed the 'path' objc_msgSend
-                        //        as the culprit. That suggests the KEVENT is being sent back to us with a udata value that is NOT what we assigned
-                        //        to the queue, though I don't know why and I don't know why it's intermittent. Regardless, I've added an extra
-                        //        check here to try to eliminate this (infrequent) problem. In theory, a KEVENT that does not have a VDKQueuePathEntry
-                        //        object attached as the udata parameter is not an event we registered for, so we should not be "missing" any events. In theory.
-                        //
-                        id pe = ev.udata;
-                        if (pe && [pe respondsToSelector:@selector(path)])
+                        uintptr_t uid = (uintptr_t)ev.udata;
+                        VDKQueuePathEntry *pe;
+                        @synchronized(self)
                         {
-                            NSString *fpath = [((VDKQueuePathEntry *)pe).path retain];         // Need to retain so it does not disappear while the block at the bottom is waiting to run on the main thread. Released in that block.
+                            pe = [_pathMap objectForKey:@(uid)];
+                        }
+                        if (pe)
+                        {
+                            NSString *fpath = [pe.path retain];         // Need to retain so it does not disappear while the block at the bottom is waiting to run on the main thread. Released in that block.
                             if (!fpath) continue;
                             
                             [[NSWorkspace sharedWorkspace] noteFileSystemChanged:fpath];
@@ -405,6 +408,7 @@ NSString * VDKQueueAccessRevocationNotification = @"VDKQueueAccessWasRevokedNoti
         
         // Remove it only if we're watching it.
         if (entry) {
+            [_pathMap removeObjectForKey:@(entry.uniqueId)];
             [_watchedPathEntries removeObjectForKey:aPath];
         }
 	}
@@ -417,6 +421,7 @@ NSString * VDKQueueAccessRevocationNotification = @"VDKQueueAccessWasRevokedNoti
 {
     @synchronized(self)
     {
+        [_pathMap removeAllObjects];
         [_watchedPathEntries removeAllObjects];
     }
 }
