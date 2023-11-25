@@ -123,6 +123,7 @@ extern NSString * VDKQueueAccessRevocationNotification;
 @private
     int						_coreQueueFD;                           // The actual kqueue ID (Unix file descriptor).
 	NSMutableDictionary    *_watchedPathEntries;                    // List of VDKQueuePathEntries. Keys are NSStrings of the path that each VDKQueuePathEntry is for.
+	NSMutableDictionary    *_pathMap;                               // unique id -> path entry (for thread safety)
     BOOL                    _keepWatcherThreadRunning;              // Set to NO to cancel the thread that watches _coreQueueFD for kQueue events
 }
 
