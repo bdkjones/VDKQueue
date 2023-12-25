@@ -141,12 +141,6 @@ NSString * VDKQueueAccessRevocationNotification = @"VDKQueueAccessWasRevokedNoti
 
 - (void) dealloc
 {
-    // Shut down the thread that's scanning for kQueue events
-    _keepWatcherThreadRunning = NO;
-    
-    // Do this to close all the open file descriptors for files we're watching
-    [self removeAllPaths];
-    
     [_watchedPathEntries release];
     _watchedPathEntries = nil;
     
@@ -417,6 +411,22 @@ NSString * VDKQueueAccessRevocationNotification = @"VDKQueueAccessWasRevokedNoti
 {
     @synchronized(self)
     {
+        [_watchedPathEntries removeAllObjects];
+    }
+}
+
+
+- (void) stopWatching
+{
+    // This method must be called if we want this object to ever be dealloc'd. This is because detachNewThreadSelector:toTarget:withObject:
+    // retains the target (in this case, self), setting the retainCount to 2. Aside from the memory leak issue, if the thread is never terminated,
+    // the watcher thread might still try to send messages to a nonexistent delegate, causing your app to crash.
+    @synchronized(self)
+    {
+        // Shut down the thread that's scanning for kQueue events
+        _keepWatcherThreadRunning = NO;
+
+        // Do this to close all the open file descriptors for files we're watching
         [_watchedPathEntries removeAllObjects];
     }
 }
