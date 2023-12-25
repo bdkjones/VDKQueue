@@ -141,12 +141,6 @@ NSString * VDKQueueAccessRevocationNotification = @"VDKQueueAccessWasRevokedNoti
 
 - (void) dealloc
 {
-    // Shut down the thread that's scanning for kQueue events
-    _keepWatcherThreadRunning = NO;
-    
-    // Do this to close all the open file descriptors for files we're watching
-    [self removeAllPaths];
-    
     [_watchedPathEntries release];
     _watchedPathEntries = nil;
     
@@ -200,6 +194,8 @@ NSString * VDKQueueAccessRevocationNotification = @"VDKQueueAccessWasRevokedNoti
 			{
 				_keepWatcherThreadRunning = YES;
 				[NSThread detachNewThreadSelector:@selector(watcherThread:) toTarget:self withObject:nil];
+				// register a custom event that we will trigger to stop the thread
+				kevent(_coreQueueFD, &(struct kevent){0, EVFILT_USER, EV_ADD, NOTE_FFNOP, 0, NULL}, 1, NULL, 0, &nullts);
 			}
         }
         
@@ -218,7 +214,8 @@ NSString * VDKQueueAccessRevocationNotification = @"VDKQueueAccessWasRevokedNoti
 {
     int					n;
     struct kevent		ev;
-    struct timespec     timeout = { 1, 0 };     // 1 second timeout. Should be longer, but we need this thread to exit when a kqueue is dealloced, so 1 second timeout is quite a while to wait.
+    // no timeout needed. Instead of polling every second, we can pass NULL to wait indefinitely
+    // for vnode events or for an EVFILT_USER event to stop the thread.
 	int					theFD = _coreQueueFD;	// So we don't have to risk accessing iVars when the thread is terminated.
     
     NSMutableArray      *notesToPost = [[NSMutableArray alloc] initWithCapacity:5];
@@ -227,11 +224,14 @@ NSString * VDKQueueAccessRevocationNotification = @"VDKQueueAccessWasRevokedNoti
 	NSLog(@"watcherThread started.");
 #endif
 	
-    while(_keepWatcherThreadRunning)
+    while(1)
     {
         @try 
         {
-            n = kevent(theFD, NULL, 0, &ev, 1, &timeout);
+            n = kevent(theFD, NULL, 0, &ev, 1, NULL);
+            if (ev.filter == EVFILT_USER) {
+            	break;
+            }
             if (n > 0)
             {
                 //NSLog( @"KEVENT returned %d", n );
@@ -417,6 +417,22 @@ NSString * VDKQueueAccessRevocationNotification = @"VDKQueueAccessWasRevokedNoti
 {
     @synchronized(self)
     {
+        [_watchedPathEntries removeAllObjects];
+    }
+}
+
+
+- (void) stopWatching
+{
+    // This method must be called if we want this object to ever be dealloc'd. This is because detachNewThreadSelector:toTarget:withObject:
+    // retains the target (in this case, self), setting the retainCount to 2. Aside from the memory leak issue, if the thread is never terminated,
+    // the watcher thread might still try to send messages to a nonexistent delegate, causing your app to crash.
+    @synchronized(self)
+    {
+        // Shut down the thread that's scanning for kQueue events
+        kevent(_coreQueueFD, &(struct kevent){0, EVFILT_USER, EV_ENABLE, NOTE_TRIGGER, 0, NULL}, 1, NULL, 0, &(struct timespec){0,0});
+
+        // Do this to close all the open file descriptors for files we're watching
         [_watchedPathEntries removeAllObjects];
     }
 }
