@@ -431,6 +431,7 @@ NSString * VDKQueueAccessRevocationNotification = @"VDKQueueAccessWasRevokedNoti
     {
         // Shut down the thread that's scanning for kQueue events
         kevent(_coreQueueFD, &(struct kevent){0, EVFILT_USER, EV_ENABLE, NOTE_TRIGGER, 0, NULL}, 1, NULL, 0, &(struct timespec){0,0});
+        _keepWatcherThreadRunning = NO;
 
         // Do this to close all the open file descriptors for files we're watching
         [_watchedPathEntries removeAllObjects];
